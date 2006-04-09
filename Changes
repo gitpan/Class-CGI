@@ -1,0 +1,20 @@
+Revision history for Class-CGI
+
+0.03   2006-04-08
+       - Now passes the parameter name is the second argument to the handler
+         constructor.  Thanks to Aristotle for pointing out how useful that
+         would be.
+       - Handlers can now be defined in a config file rather than being
+         continuously redefined in the code.
+
+0.02   2006-04-07
+       - Added 'raw_param' method which allows the user to fetch the actual
+         value of a parameter and ignore handlers defined for it.
+       - Handlers now accept the Class::CGI object instead of the value of the
+         corresponding parameter.  This makes them far more flexible (when
+         will I learn that I should default to passing objects instead of
+         scalars?)
+
+0.01   2006-04-07 
+       - First version, released on an unsuspecting world.
+
