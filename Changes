@@ -1,5 +1,14 @@
 Revision history for Class-CGI
 
+0.04   2006-04-11
+       - Do not load Config::Std unless needed.
+       - handlers() method without arguments now returns the currently used
+         handlers.
+       - Tremendously improved test coverage.  Devel::Cover lists one branch
+         as untested (and I can't figure out why).
+       - Minor documentation clarifications.
+       - Updated the manifest to include the tests :/
+
 0.03   2006-04-08
        - Now passes the parameter name is the second argument to the handler
          constructor.  Thanks to Aristotle for pointing out how useful that

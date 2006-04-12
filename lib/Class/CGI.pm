@@ -4,7 +4,6 @@ use warnings;
 use strict;
 
 use CGI::Simple 0.077;
-use Config::Std;
 use Module::Load::Conditional qw/check_install/;
 use base 'CGI::Simple';
 
@@ -14,11 +13,11 @@ Class::CGI - Fetch objects from your CGI object
 
 =head1 VERSION
 
-Version 0.03
+Version 0.04
 
 =cut
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 =head1 SYNOPSIS
 
@@ -43,8 +42,9 @@ goes away and you can get back to merely I<pretending> to work.
 Because this module is a subclass of C<CGI::Simple>, all of C<CGI::Simple>'s
 methods and behaviors should be available.  We do not subclass off of C<CGI>
 because C<CGI::Simple> is faster and it's assumed that if we're going the full
-OO route that we are already using templates.  This decision may be revisited
-in the future.
+OO route that we are already using templates.  Thus, the C<CGI> HTML
+generation methods are not available.  This decision may be revisited in the
+future.
 
 =head1 EXPORT
 
@@ -99,10 +99,13 @@ sub import {
     my ( $config, $use_profiles );
     @_ = @_;    # this avoids the "modification of read-only value" error when
                 # we assign undef the elements
-    foreach my $i ( grep { !( $_ % 2 ) } 0 .. $#_ ) {
+    foreach my $i ( 0 .. $#_ ) {
+
+        # we sometimes hit unitialized values due to "undef"ing array elements
+        no warnings 'uninitialized';
         my ( $arg, $value ) = @_[ $i, $i + 1 ];
         if ( 'handlers' eq $arg ) {
-            if ( !$value || !%$value ) {
+            if ( !ref $value || 'HASH' ne ref $value ) {
                 $class->_croak("No handlers defined");
             }
             while ( my ( $profile, $handler ) = each %$value ) {
@@ -119,7 +122,9 @@ sub import {
         }
         if ( 'profiles' eq $arg ) {
             if ( -f $value ) {
-                read_config $value => $config;
+                require Config::Std;
+                Config::Std->import;
+                read_config( $value => \$config );
             }
             else {
 
@@ -132,7 +137,8 @@ sub import {
     }
     if ($config) {
         unless ($use_profiles) {
-            while ( my ( $profile, $handler ) = each %{ $config->{profiles} } )
+            while ( my ( $profile, $handler )
+                = each %{ $config->{profiles} } )
             {
 
                 # the "unless" is here because users may override profile
@@ -144,7 +150,7 @@ sub import {
         else {
             foreach my $profile (@$use_profiles) {
                 my $handler = $config->{profiles}{$profile}
-                  or $class->_croak("No handler found for profile $profile");
+                  or $class->_croak("No handler found for parameter '$profile'");
                 $class_for{$profile} = $handler;
             }
         }
@@ -153,6 +159,11 @@ sub import {
     @_ = grep {defined} @_;
     $class->_verify_installed( values %class_for );
     goto &CGI::Simple::import;    # don't update the call stack
+}
+
+# testing hook
+sub _clear_global_handlers {
+    %class_for = ();
 }
 
 sub _verify_installed {
@@ -186,6 +197,8 @@ sub _verify_installed {
   my $customer = $cust_cgi->param('customer');
   my $order    = $order_cgi->param('order');
   $order->customer($customer);
+
+  my $handlers = $cgi->handlers; # returns hashref of current handlers
  
 Sometimes we get our CGI parameters from different sources.  This commonly
 happens in a persistent environment where the class handlers for one form may
@@ -200,13 +213,24 @@ global class handlers set in the import list:
 In the above example, the C<$cgi> object will not use the
 C<Some::Customer::Handler> class.
 
+If called without arguments, returns a hashref of the current handlers in
+effect.
+
 =cut
 
 sub handlers {
-    my ( $self, %handlers ) = @_;
-    $self->{class_cgi_handlers} = \%handlers;
-    $self->_verify_installed( values %handlers );
-    return $self;
+    my $self = shift;
+    if ( my %handlers = @_ ) {
+        $self->{class_cgi_handlers} = \%handlers;
+        $self->_verify_installed( values %handlers );
+        return $self;
+    }
+
+    # else called without arguments
+    if ( my $handlers = $self->{class_cgi_handlers} ) {
+        return $handlers;
+    }
+    return \%class_for;
 }
 
 ##############################################################################
@@ -229,12 +253,15 @@ file.
 sub profiles {
     my ( $self, $profiles, @use ) = @_;
     unless ( -f $profiles ) {
+
         # eventually we may want to allow them to specify a config
         # class instead of a file.
         $self->_croak("Can't find profile file '$profiles'");
     }
 
-    read_config $profiles => my %config;
+    require Config::Std;
+    Config::Std->import;
+    read_config( $profiles => \my %config );
     my %handler_for = %{ $config{profiles} };
     if (@use) {
         my %used;
@@ -243,7 +270,7 @@ sub profiles {
                 $used{$profile} = 1;
             }
             else {
-                $self->_croak("Cannot use unknown profile '$profile'");
+                $self->_croak("No handler found for parameter '$profile'");
             }
         }
         foreach my $profile ( keys %handler_for ) {
