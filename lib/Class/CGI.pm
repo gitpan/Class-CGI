@@ -13,11 +13,11 @@ Class::CGI - Fetch objects from your CGI object
 
 =head1 VERSION
 
-Version 0.04
+Version 0.10
 
 =cut
 
-our $VERSION = '0.04';
+our $VERSION = '0.10';
 
 =head1 SYNOPSIS
 
@@ -30,6 +30,10 @@ our $VERSION = '0.04';
     my $customer = $cgi->param('customer_id');
     my $name     = $customer->name;
     my $email    = $cgi->param('email'); # behaves like normal
+
+    if ( my @errors = $cgi->errors ) {
+       # do error handling
+    }
 
 =head1 DESCRIPTION
 
@@ -150,7 +154,8 @@ sub import {
         else {
             foreach my $profile (@$use_profiles) {
                 my $handler = $config->{profiles}{$profile}
-                  or $class->_croak("No handler found for parameter '$profile'");
+                  or
+                  $class->_croak("No handler found for parameter '$profile'");
                 $class_for{$profile} = $handler;
             }
         }
@@ -315,7 +320,13 @@ sub param {
     my $class = $handler_for->{$param};
     eval "require $class";
     $self->_croak("Could not load '$class': $@") if $@;
-    return $class->new( $self, $param );
+    my $result;
+    eval { $result = $class->new( $self, $param ) };
+    if ( my $error = $@ ) {
+        $self->_add_error($error);
+        return;
+    }
+    return $result;
 }
 
 ##############################################################################
@@ -332,6 +343,76 @@ defined for it.
 sub raw_param {
     my $self = shift;
     return $self->SUPER::param(@_);
+}
+
+##############################################################################
+
+=head2 errors
+
+  if ( my @errors = $cgi->errors ) {
+      ...
+  }
+
+Returns exceptions thrown by handlers, if any.  In scalar context, returns an
+array reference.  Note that these exceptions are generated via the overloaded
+C<&param> method.  For example, let's consider the following:
+
+    use Class::CGI
+        handlers => {
+            customer => 'Class::CGI::Customer',
+            date     => 'Class::CGI::Date',
+            order    => 'Class::CGI::Order',
+        };
+
+    my $cgi      = Class::CGI->new;
+    my $customer = $cgi->param('customer');
+    my $date     = $cgi->param('date');
+    my $order    = $cgi->param('order');
+
+    if ( my @errors = $cgi->errors ) {
+       # do error handling
+    }
+
+If any of the C<< $cgi->param >> calls generats an error, it will B<not> throw
+an exception.  Instead, control will pass to the next statement.  After all
+C<< $cgi->param >> calls are made, you can check the C<&errors> method to see
+if any errors were generated and, if so, handle them appropriately.
+
+This allows the programmer to validate the entire set of form data and report
+all errors at once.  Otherwise, you wind up with the problem often seen on Web
+forms where a customer will incorrectly fill out multiple fields and have the
+Web page returned for the first error, which gets corrected, and then the page
+returns the next error, and so on.  This is very frustrating for a customer
+and should be avoided at all costs.
+
+=cut
+
+sub errors {
+    my $self = shift;
+    return wantarray
+      ? @{ $self->{class_cgi_errors} || [] }
+      : $self->{class_cgi_errors};
+}
+
+##############################################################################
+
+=head2 clear_errors 
+
+  $cgi->clear_errors;
+
+Deletes all errors returned by the C<&errors> method.
+
+=cut
+
+sub clear_errors {
+    my $self = shift;
+    $self->{class_cgi_errors} = [];
+    return $self;
+}
+
+sub _add_error {
+    my $self = shift;
+    push @{ $self->{class_cgi_errors} }, shift;
 }
 
 sub _croak {

@@ -1,5 +1,10 @@
 Revision history for Class-CGI
 
+0.10   2006-04-16
+       - Add better error handling for the param() method.  At this point,
+         Class::CGI is essentially feature complete, though enhancements to
+         various features may come at some point in the future.
+
 0.04   2006-04-11
        - Do not load Config::Std unless needed.
        - handlers() method without arguments now returns the currently used

@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 21;
+use Test::More tests => 35;
 #use Test::More qw/no_plan/;
 use Test::Exception;
 use lib 't/lib';
@@ -68,21 +68,44 @@ throws_ok { Class::CGI->import( handlers => [qw/Class::CGI::Customer/] ) }
   qr/No handlers defined/,
   'Failing to provide a hashref of handlers should throw an exception';
 
-# Note that the following tests are not quite necessary as the exception
-# handling is up to those who implement handlers.  However, I include them
-# here so folks can see how this works.
+# Note that some of the following tests are not quite necessary as the
+# exception handling is up to those who implement handlers.  However, I
+# include them here so folks can see how this works.
 
 # test that we cannot use invalid ids
 
 $params = { customer => 'Ovid' };
 $cgi = $CGI->new($params);
-throws_ok { $cgi->param('customer') }
-  qr/^\QInvalid id (Ovid) for Class::CGI::Customer/,
+ok !$cgi->param('customer'),
   'Trying to fetch a value with an invalid ID should fail';
+
+can_ok $cgi, 'errors';
+ok my @errors = $cgi->errors, '... and it should return the generated errors';
+is scalar @errors, 1, '... and they should be the correct number of errors';
+like $errors[0], qr/^\QInvalid id (Ovid) for Class::CGI::Customer/,
+  '... and be the errors thrown by the handlers';
 
 # test that we cannot use a non-existent id
 
 $params = { customer => 3 };
 $cgi = $CGI->new($params);
-throws_ok { $cgi->param('customer') } qr/^\QCould not find customer for (3)/,
+ok !$cgi->param('customer'),
   'Trying to fetch a value with a non-existent ID should fail';
+
+ok my $errors = $cgi->errors, '... and we should have the errors available';
+is scalar @$errors, 1, '... and they should be the correct number of errors';
+like $errors->[0], qr/^\QCould not find customer for (3)/,
+  '... and the new error should be correct';
+
+ok !$cgi->param('customer'),
+  'Trying to refetch a value with a non-existent ID should fail';
+
+ok $errors = $cgi->errors, '... and we should have the errors available';
+is scalar @$errors, 2, '... and they should be the correct number of errors';
+like $errors->[1], qr/^\QCould not find customer for (3)/,
+  '... and the new error should be correct';
+
+can_ok $cgi, 'clear_errors';
+ok $cgi->clear_errors, '... and clearing the errors should be successful';
+ok !( @errors = $cgi->errors ),
+  '... and we should have no more errors reported';
