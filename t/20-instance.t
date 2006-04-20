@@ -91,8 +91,8 @@ $cgi->handlers(
 
 ok !$cgi->param('customer'),
   'Trying to fetch a value with an invalid ID should fail';
-my @errors = $cgi->errors;
-like $errors[0], qr/^\QInvalid id (Ovid) for Class::CGI::Customer/,
+my %errors = $cgi->errors;
+like $errors{customer}, qr/^\QInvalid id (Ovid) for Class::CGI::Customer/,
   '... and we should have the correct error reported';
 
 # test that we cannot use a non-existent id
@@ -105,6 +105,6 @@ $cgi->handlers(
 
 ok !$cgi->param('customer'),
   'Trying to fetch a value with a non-existent ID should fail';
-@errors = $cgi->errors;
-like $errors[0], qr/^\QCould not find customer for (3)/,
+%errors = $cgi->errors;
+like $errors{customer}, qr/^\QCould not find customer for (3)/,
   '... and we should have the correct error reported';

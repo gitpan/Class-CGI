@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 35;
+use Test::More tests => 36;
 #use Test::More qw/no_plan/;
 use Test::Exception;
 use lib 't/lib';
@@ -80,29 +80,31 @@ ok !$cgi->param('customer'),
   'Trying to fetch a value with an invalid ID should fail';
 
 can_ok $cgi, 'errors';
-ok my @errors = $cgi->errors, '... and it should return the generated errors';
-is scalar @errors, 1, '... and they should be the correct number of errors';
-like $errors[0], qr/^\QInvalid id (Ovid) for Class::CGI::Customer/,
+ok my %error_for = $cgi->errors, '... and it should return the generated errors';
+is scalar keys %error_for, 1, '... and they should be the correct number of errors';
+like $error_for{customer}, qr/^\QInvalid id (Ovid) for Class::CGI::Customer/,
   '... and be the errors thrown by the handlers';
 
 # test that we cannot use a non-existent id
 
 $params = { customer => 3 };
 $cgi = $CGI->new($params);
+ok ! (%error_for = $cgi->errors),
+  'A brand new Class::CGI object should report no errors';
 ok !$cgi->param('customer'),
   'Trying to fetch a value with a non-existent ID should fail';
 
-ok my $errors = $cgi->errors, '... and we should have the errors available';
-is scalar @$errors, 1, '... and they should be the correct number of errors';
-like $errors->[0], qr/^\QCould not find customer for (3)/,
+ok my $error_for = $cgi->errors, '... and we should have the errors available';
+is scalar keys %$error_for, 1, '... and they should be the correct number of errors';
+like $error_for->{customer}, qr/^\QCould not find customer for (3)/,
   '... and the new error should be correct';
 
 ok !$cgi->param('customer'),
   'Trying to refetch a value with a non-existent ID should fail';
 
 ok $errors = $cgi->errors, '... and we should have the errors available';
-is scalar @$errors, 2, '... and they should be the correct number of errors';
-like $errors->[1], qr/^\QCould not find customer for (3)/,
+is scalar keys %$errors, 1, '... and they should be the correct number of errors';
+like $errors->{customer}, qr/^\QCould not find customer for (3)/,
   '... and the new error should be correct';
 
 can_ok $cgi, 'clear_errors';
