@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: Class-CGI
-version: 0.11
+version: 0.12
 author:
   - 'Curtis "Ovid" Poe <ovid@cpan.org>'
 abstract: "Fetch objects from your CGI object"

@@ -13,17 +13,17 @@ Class::CGI - Fetch objects from your CGI object
 
 =head1 VERSION
 
-Version 0.11
+Version 0.12
 
 =cut
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 =head1 SYNOPSIS
 
     use Class::CGI
         handlers => {
-            customer_id => 'Class::CGI::Customer'
+            customer_id => 'My::Customer::Handler'
         };
 
     my $cgi      = Class::CGI->new;
@@ -31,7 +31,7 @@ our $VERSION = '0.11';
     my $name     = $customer->name;
     my $email    = $cgi->param('email'); # behaves like normal
 
-    if ( my @errors = $cgi->errors ) {
+    if ( my %errors = $cgi->errors ) {
        # do error handling
     }
 
@@ -42,13 +42,6 @@ an object constructor and get the object back. This module would allow one to
 to build C<Class::CGI> handler classes which take the parameter value,
 automatically perform those steps and just return the object. Much grunt work
 goes away and you can get back to merely I<pretending> to work.
-
-Because this module is a subclass of C<CGI::Simple>, all of C<CGI::Simple>'s
-methods and behaviors should be available.  We do not subclass off of C<CGI>
-because C<CGI::Simple> is faster and it's assumed that if we're going the full
-OO route that we are already using templates.  Thus, the C<CGI> HTML
-generation methods are not available.  This decision may be revisited in the
-future.
 
 =head1 EXPORT
 
@@ -61,7 +54,7 @@ parameter's handler class in the import list:
 
   use Class::CGI
     handlers => {
-      customer => 'Class::CGI::Customer',
+      customer => 'My::Customer::Handler',
       sales    => 'Sales::Loader'
     };
 
@@ -193,11 +186,11 @@ sub _verify_installed {
   use Class::CGI;
   my $cust_cgi = Class::CGI->new;
   $cust_cgi->handlers(
-    customer => 'Class::CGI::Customer',
+    customer => 'My::Customer::Handler',
   );
   my $order_cgi = Class::CGI->new($other_params);
   $order_cgi->handlers(
-    order    => 'Class::CGI::Order',
+    order    => 'My::Order::Handler',
   );
   my $customer = $cust_cgi->param('customer');
   my $order    = $order_cgi->param('order');
@@ -211,12 +204,18 @@ not be appropriate for another form.  When this occurs, you may set the
 handler classes on an instance of the C<Class::CGI> object.  This overrides
 global class handlers set in the import list:
 
-  use Class::CGI handlers => { customer => "Some::Customer::Handler" };
+  use Class::CGI handlers => { 
+      customer => "Some::Customer::Handler",
+      order    => "My::Order::Handler"
+  };
   my $cgi = Class::CGI->new;
   $cgi->handlers( customer => "Some::Other::Customer::Handler" );
 
 In the above example, the C<$cgi> object will not use the
-C<Some::Customer::Handler> class.
+C<Some::Customer::Handler> class.  Further, the "order" handler will B<not> be
+available.  Setting hanlders on an makes the global handlers unavailable.  If
+you also needed the "order" handler, you need to specify that in the
+C<&handlers> method.
 
 If called without arguments, returns a hashref of the current handlers in
 effect.
@@ -291,7 +290,7 @@ sub profiles {
 
  use Class::CGI
      handlers => {
-         customer => 'Class::CGI::Customer'
+         customer => 'My::Customer::Handler'
      };
 
  my $cgi = Class::CGI->new;
@@ -301,10 +300,10 @@ sub profiles {
 
 If a handler is defined for a particular parameter, the C<param()> calls the
 C<new()> method for that handler, passing the C<Class::CGI> object and the
-parameter's value.  Returns the value returned by C<new()>.  In the example
+parameter's name.  Returns the value returned by C<new()>.  In the example
 above, for "customer", the return value is essentially:
 
- return Class::CGI::Customer->new( $self );
+ return My::Customer::Handler->new( $self, 'customer' );
 
 =cut
 
@@ -349,19 +348,19 @@ sub raw_param {
 
 =head2 errors
 
-  if ( my @errors = $cgi->errors ) {
+  if ( my %errors = $cgi->errors ) {
       ...
   }
 
-Returns exceptions thrown by handlers, if any.  In scalar context, returns an
-array reference.  Note that these exceptions are generated via the overloaded
+Returns exceptions thrown by handlers, if any.  In scalar context, returns a
+hash reference.  Note that these exceptions are generated via the overloaded
 C<&param> method.  For example, let's consider the following:
 
     use Class::CGI
         handlers => {
-            customer => 'Class::CGI::Customer',
-            date     => 'Class::CGI::Date',
-            order    => 'Class::CGI::Order',
+            customer => 'My::Customer::Handler',
+            date     => 'My::Date::Handler',
+            order    => 'My::Order::Handler',
         };
 
     my $cgi      = Class::CGI->new;
@@ -442,7 +441,7 @@ example, we assume that our customer class is named C<My::Customer> and we
 load a customer object with the C<load_from_id()> method.  The handler might
 look like this:
 
-  package Class::CGI::Customer;
+  package My::Customer::Handler;
   
   use strict;
   use warnings;
@@ -467,7 +466,7 @@ Using this in your code is as simple as:
 
   use Class::CGI
     handlers => {
-      customer => 'Class::CGI::Customer',
+      customer => 'My::Customer::Handler',
     };
 
 If C<Class::CGI> is being used in a persistent environment and other forms
@@ -476,7 +475,12 @@ C<My::Customer> object, then set the handler on the instance instead:
 
   use Class::CGI;
   my $cgi = Class::CGI->new;
-  $cgi->handlers( customer => 'Class::CGI::Customer' );
+  $cgi->handlers( customer => 'My::Customer::Handler' );
+
+B<Important>:  Note that earlier versions of C<Class::CGI> listed handlers
+with names like C<Class::CGI::Order>.  It is recommended that you not use the
+C<Class::CGI::> namespace to avoid possibly conflicts with handlers which may
+be released to the CPAN in this namespace.
 
 =head2 A more complex example
 
@@ -486,7 +490,7 @@ with the same handler.  This is also trivial.  With the above example, let's
 say that we want to instantiate the customer if we have a customer param.
 Otherwise, we instantiate the customer from the parameters "first" and "last".
 
-  package Class::CGI::Customer;
+  package My::Customer::Handler;
   
   use strict;
   use warnings;
@@ -584,14 +588,14 @@ customer birth date, one is an order date and one is just a plain date.  Maybe
 our code will look like this:
 
  $cgi->handlers(
-     birth_date => 'Class::CGI::Date',
-     order_date => 'Class::CGI::Date',
-     date       => 'Class::CGI::Date',
+     birth_date => 'My::Date::Handler',
+     order_date => 'My::Date::Handler',
+     date       => 'My::Date::Handler',
  );
 
 One way of handling that would be the following:
 
- package Class::CGI::Date;
+ package My::Date::Handler;
  
  use strict;
  use warnings;
@@ -635,9 +639,9 @@ Handlers for parameters may be defined in an import list:
 
   use Class::CGI
       handlers => {
-          customer   => 'Class::CGI::Customer',
-          order_date => 'Class::CGI::Date',
-          order      => 'Class::CGI::Order',
+          customer   => 'My::Customer::Handler',
+          order_date => 'My::Date::Handler',
+          order      => 'My::Order::Handler',
       };
 
 =head2 Creating a profile file
@@ -651,9 +655,9 @@ parameter name and the handler class for the parameter.  The above import list
 could be listed like this in the file:
 
   [profiles]
-  customer:   Class::CGI::Customer
-  order_date: Class::CGI::Date
-  order:      Class::CGI::Order
+  customer:   My::Customer::Handler
+  order_date: My::Date::Handler
+  order:      My::Order::Handler
 
 You may then use the profiles in your code as follows:
 
@@ -670,6 +674,55 @@ As with C<&handlers>, you may find that you don't want the profiles globally
 applied.  In that case, use the C<&profiles> method described above:
 
   $cgi->profiles( $profile_file, @optional_list_of_profiles_to_use );
+
+=head1 DESIGN CONSIDERATIONS
+
+=head2 Subclassing CGI::Simple
+
+Because this module is a subclass of C<CGI::Simple>, all of C<CGI::Simple>'s
+methods and behaviors should be available.  We do not subclass off of C<CGI>
+because C<CGI::Simple> is faster and it's assumed that if we're going the full
+OO route that we are already using templates.  Thus, the C<CGI> HTML
+generation methods are not available and should not be needed.  This decision
+may be revisited in the future.
+
+More to the point, CGI.pm, while being faster and more lightweight than most
+people give it credit for, is a pain to subclass.  Further, it would need to
+be subclassed without exposing the functional interface due to the need to
+maintain state in C<Class::CGI>.
+
+=head2 Delayed loading
+
+When handlers are specified, either at compile time or setting them on an
+instance, the existence of the handlers is verified.  However, the handlers
+are not loaded until used, thus reducing memory usage if they are not needed.
+
+In a similar veing, if you choose to use a profile file (see L<Creating a
+profile file>), C<Config::Std> is used.  However, that module is also not
+loaded unless needed.
+
+=head2 Why not Data::FormValidator?
+
+The biggest complaint about C<CGI::Simple> seems to be that it's "reinventing
+the wheel".  Before you agree with that complaint, see
+L<http://www.perlmonks.org/?node_id=543742>.  Pointy-haired boss summary of
+that link:  you had better reinvent the wheel if you're creating a motorcycle
+instead of a car.
+
+There's nothing wrong with C<Data::FormValidator>.  It's fast, powerful, and
+well-proven in its approach.  C<Class::CGI>, in fact, can easily benefit from
+C<Data::FormValidator> inside of handler classes.  However, the approach we
+take is fundamentally different.  First, instead of learning a list of
+required hash keys and trying to remember what C<optional_regexp>, C<filters>,
+C<field_filter_regexp_map>, C<dependency_groups> and so on do, you just need
+to know that a handler constructor takes a C<Class::CGI> instance and the
+parameter name.  Everything else is just normal Perl code, no memorization
+required.
+
+With C<Class::CGI>, you can pick and choose what handlers you wish to support
+for a given piece of code.  You can have a global set of handlers to enforce
+consistency in your Web site or you can have "per page" handlers set up as
+needed.
 
 =head1 TODO
 

@@ -1,5 +1,9 @@
 Revision history for Class-CGI
 
+0.12   2006-04-20
+       - No code changes.  Fixed some documentation errors and expanded some
+         explanations.
+
 0.11   2006-04-19
        - API change.  errors() now returns a hash instead of an arrayref.
          The keys are the param() names.  This was necessary because pushing
