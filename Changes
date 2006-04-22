@@ -1,5 +1,9 @@
 Revision history for Class-CGI
 
+0.13   2006-04-22
+       - Minor doc fixes.
+       - Added the "args" method.
+
 0.12   2006-04-20
        - No code changes.  Fixed some documentation errors and expanded some
          explanations.

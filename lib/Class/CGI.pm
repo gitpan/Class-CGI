@@ -13,11 +13,11 @@ Class::CGI - Fetch objects from your CGI object
 
 =head1 VERSION
 
-Version 0.12
+Version 0.13
 
 =cut
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 =head1 SYNOPSIS
 
@@ -342,6 +342,41 @@ defined for it.
 sub raw_param {
     my $self = shift;
     return $self->SUPER::param(@_);
+}
+
+##############################################################################
+
+=head2 args
+
+  $cgi->args('customer', \@whatever_you_want);
+
+  my $args = $cgi->args($param);
+
+This method allows you to pass extra arguments to a handler.  Specify the name
+of the parameter for which you wish to provide the arguments and then provide
+a I<single> argument (it may be a reference).  In your handler, you can access
+it like this:
+
+  package Some::Handler;
+
+  sub new {
+      my ( $class, $cgi, $param ) = @_;
+
+      my $args = $cgi->args($param);
+      ...
+  }
+
+=cut
+
+sub args {
+    my $self  = shift;
+    my $param = shift;
+    $self->{class_cgi_args} ||= {};
+    my $arg_for = $self->{class_cgi_args};
+    return $arg_for->{$param} unless @_;
+
+    $arg_for->{$param} = shift;
+    return $self;
 }
 
 ##############################################################################
@@ -697,7 +732,7 @@ When handlers are specified, either at compile time or setting them on an
 instance, the existence of the handlers is verified.  However, the handlers
 are not loaded until used, thus reducing memory usage if they are not needed.
 
-In a similar veing, if you choose to use a profile file (see L<Creating a
+In a similar vein, if you choose to use a profile file (see L<Creating a
 profile file>), C<Config::Std> is used.  However, that module is also not
 loaded unless needed.
 

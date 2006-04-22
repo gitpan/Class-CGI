@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 36;
+use Test::More tests => 39;
 #use Test::More qw/no_plan/;
 use Test::Exception;
 use lib 't/lib';
@@ -8,6 +8,7 @@ use lib 't/lib';
 use Class::CGI handlers => {
     customer => 'Class::CGI::Customer',
     sales    => 'Class::CGI::SyntaxError',
+    argument => 'Class::CGI::Args',
 };
 
 my $CGI = 'Class::CGI';
@@ -23,7 +24,10 @@ isa_ok $cgi, $CGI, '... and the object it returns';
 can_ok $cgi, 'handlers';
 ok my $handlers = $cgi->handlers, '... and calling it should succeed';
 is_deeply $handlers,
-  { customer => 'Class::CGI::Customer', sales => 'Class::CGI::SyntaxError' },
+  { argument => 'Class::CGI::Args',
+    customer => 'Class::CGI::Customer',
+    sales    => 'Class::CGI::SyntaxError',
+  },
   '... and it should return a hashref of the current handlers';
 
 can_ok $cgi, 'param';
@@ -41,6 +45,13 @@ is $email, 'some@example.com',
 my @params = sort $cgi->param;
 is_deeply \@params, [qw/customer email/],
   'Calling param() without arguments should succeed';
+
+can_ok $cgi, 'args';
+$cgi->args( argument => [qw/foo bar/] );
+ok my $args = $cgi->param('argument'),
+   '... and handlers which rely on args should succeed';
+is_deeply $args, [qw/bar foo/],
+   '... and handle their arguments correctly';
 
 # test multiple values for unhandled params
 
@@ -80,8 +91,10 @@ ok !$cgi->param('customer'),
   'Trying to fetch a value with an invalid ID should fail';
 
 can_ok $cgi, 'errors';
-ok my %error_for = $cgi->errors, '... and it should return the generated errors';
-is scalar keys %error_for, 1, '... and they should be the correct number of errors';
+ok my %error_for = $cgi->errors,
+  '... and it should return the generated errors';
+is scalar keys %error_for, 1,
+  '... and they should be the correct number of errors';
 like $error_for{customer}, qr/^\QInvalid id (Ovid) for Class::CGI::Customer/,
   '... and be the errors thrown by the handlers';
 
@@ -89,13 +102,15 @@ like $error_for{customer}, qr/^\QInvalid id (Ovid) for Class::CGI::Customer/,
 
 $params = { customer => 3 };
 $cgi = $CGI->new($params);
-ok ! (%error_for = $cgi->errors),
+ok !( %error_for = $cgi->errors ),
   'A brand new Class::CGI object should report no errors';
 ok !$cgi->param('customer'),
   'Trying to fetch a value with a non-existent ID should fail';
 
-ok my $error_for = $cgi->errors, '... and we should have the errors available';
-is scalar keys %$error_for, 1, '... and they should be the correct number of errors';
+ok my $error_for = $cgi->errors,
+  '... and we should have the errors available';
+is scalar keys %$error_for, 1,
+  '... and they should be the correct number of errors';
 like $error_for->{customer}, qr/^\QCould not find customer for (3)/,
   '... and the new error should be correct';
 
@@ -103,7 +118,8 @@ ok !$cgi->param('customer'),
   'Trying to refetch a value with a non-existent ID should fail';
 
 ok $errors = $cgi->errors, '... and we should have the errors available';
-is scalar keys %$errors, 1, '... and they should be the correct number of errors';
+is scalar keys %$errors, 1,
+  '... and they should be the correct number of errors';
 like $errors->{customer}, qr/^\QCould not find customer for (3)/,
   '... and the new error should be correct';
 
