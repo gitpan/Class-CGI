@@ -12,7 +12,7 @@ my $builder = Module::Build->new(
         'Test::Exception'           => 0.21,
         'CGI::Simple'               => 0.077,
         'Config::Std'               => '0.0.3',
-        'Module::Load::Conditional' => 0.08,
+        'File::Spec::Functions'     => 1.3,
     },
     add_to_cleanup     => ['Class-CGI-*'],
     create_makefile_pl => 'traditional',

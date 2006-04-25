@@ -4,7 +4,7 @@ use warnings;
 use strict;
 
 use CGI::Simple 0.077;
-use Module::Load::Conditional qw/check_install/;
+use File::Spec::Functions 'catfile';
 use base 'CGI::Simple';
 
 =head1 NAME
@@ -13,11 +13,11 @@ Class::CGI - Fetch objects from your CGI object
 
 =head1 VERSION
 
-Version 0.13
+Version 0.14
 
 =cut
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 =head1 SYNOPSIS
 
@@ -168,7 +168,7 @@ sub _verify_installed {
     my ( $proto, @modules ) = @_;
     my @not_installed_modules;
     foreach my $module (@modules) {
-        check_install( module => $module )
+        _module_exists( $module )
           or push @not_installed_modules => $module;
     }
     if (@not_installed_modules) {
@@ -322,7 +322,7 @@ sub param {
     my $result;
     eval { $result = $class->new( $self, $param ) };
     if ( my $error = $@ ) {
-        $self->_add_error($param, $error);
+        $self->_add_error( $param, $error );
         return;
     }
     return $result;
@@ -373,7 +373,10 @@ sub args {
     my $param = shift;
     $self->{class_cgi_args} ||= {};
     my $arg_for = $self->{class_cgi_args};
-    return $arg_for->{$param} unless @_;
+    {
+        no warnings 'uninitialized';
+        return $arg_for->{$param} unless @_;
+    }
 
     $arg_for->{$param} = shift;
     return $self;
@@ -449,7 +452,7 @@ sub clear_errors {
 }
 
 sub _add_error {
-    my ($self, $param, $error) = @_;
+    my ( $self, $param, $error ) = @_;
     $self->{class_cgi_errors}{$param} = $error;
     return $self;
 }
@@ -458,6 +461,17 @@ sub _croak {
     my ( $proto, $message ) = @_;
     require Carp;
     Carp::croak $message;
+}
+
+sub _module_exists {
+    my $module_name = shift;
+    my @parts = split /(?:::|')/, $module_name;
+    $parts[-1] .= '.pm';
+
+    for (@INC) {
+        return 1 if -f catfile( $_, @parts );
+    }
+    return;
 }
 
 =head1 WRITING HANDLERS
@@ -683,7 +697,7 @@ Handlers for parameters may be defined in an import list:
 
 For larger sites, it's not very practical to replicate this in all code which
 needs it.  Instead, C<Class::CGI> allows you to define a "profiles" file.
-This is a configuration file which should match the C<Congif::Std> format.  At
+This is a configuration file which should match the C<Config::Std> format.  At
 the present time, only one section, "profiles", is supported.  This should be
 followed by a set of colon-delimited key/value pairs specifying the CGI
 parameter name and the handler class for the parameter.  The above import list

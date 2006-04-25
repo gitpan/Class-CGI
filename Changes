@@ -1,5 +1,13 @@
 Revision history for Class-CGI
 
+0.14   2006-04-25
+       - Fixed an 'uninitialized' warning in args().
+       - Fixed reference to "Congif" (sic) in POD.  Thanks to Darren Myer for
+         the catch (http://rt.cpan.org//Ticket/Display.html?id=18890).
+       - Removed dependency on Module::Load::Conditional due to security
+         concern.  Thanks to Darren Myer for the solution.  
+         See http://rt.cpan.org/Ticket/Display.html?id=18892 for more details.
+
 0.13   2006-04-22
        - Minor doc fixes.
        - Added the "args" method.
