@@ -7,7 +7,8 @@ WriteMakefile
   'PREREQ_PM' => {
     'CGI::Simple' => '0.077',
     'Config::Std' => '0.0.3',
-    'Module::Load::Conditional' => '0.08',
+    'File::Spec::Functions' => '1.3',
+    'HTML::Entities' => '1.32',
     'Test::Exception' => '0.21',
     'Test::More' => '0'
   },

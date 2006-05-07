@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 39;
+use Test::More tests => 48;
 #use Test::More qw/no_plan/;
 use Test::Exception;
 use lib 't/lib';
@@ -49,9 +49,8 @@ is_deeply \@params, [qw/customer email/],
 can_ok $cgi, 'args';
 $cgi->args( argument => [qw/foo bar/] );
 ok my $args = $cgi->param('argument'),
-   '... and handlers which rely on args should succeed';
-is_deeply $args, [qw/bar foo/],
-   '... and handle their arguments correctly';
+  '... and handlers which rely on args should succeed';
+is_deeply $args, [qw/bar foo/], '... and handle their arguments correctly';
 
 # test multiple values for unhandled params
 
@@ -127,3 +126,21 @@ can_ok $cgi, 'clear_errors';
 ok $cgi->clear_errors, '... and clearing the errors should be successful';
 ok !( @errors = $cgi->errors ),
   '... and we should have no more errors reported';
+
+can_ok $cgi, 'add_error';
+ok $cgi->add_error( foo => 'this => that&' ),
+  '... and setting an error should succeed';
+my %errors = $cgi->errors;
+ok my $foo_error = $errors{foo}, '... and the error should be present';
+is $foo_error, 'this =&gt; that&amp;',
+  '... and it should be properly encoded';
+
+can_ok $cgi, 'error_encoding';
+ok $cgi->error_encoding('<>'),
+  '... and setting a new encoding should succeed';
+ok $cgi->add_error( foo => 'this => that&' ),
+  '... and setting an error should succeed';
+%errors = $cgi->errors;
+ok $foo_error = $errors{foo}, '... and the error should be present';
+is $foo_error, 'this =&gt; that&',
+  '... and it should respect the new encoding';

@@ -1,5 +1,20 @@
 Revision history for Class-CGI
 
+0.20   2006-05-07
+       - Changed _add_error() to add_error() and documented it.
+       - Bug fix:  errors are now properly HTML escaped.  Users may override
+         the escaping via the new error_encoding() method.
+       - Created mailing list and added a link to it in the docs.
+       - Documented the term "virtual parameter".
+       - Overrode CGI::Simple::new() to centralize initialization.
+       - Added required() and is_required() methods.
+       - Added add_missing() and is_missing_required() methods.
+       - Handlers now have a base class (Class::CGI::Handler) with extensive
+         support for required and virtual parameters.
+       - Made the "ALPHA" designation much more prominent.  Folks need to know
+         that this is a work in progress which their production code should
+         not rely on.
+
 0.14   2006-04-25
        - Fixed an 'uninitialized' warning in args().
        - Fixed reference to "Congif" (sic) in POD.  Thanks to Darren Myer for

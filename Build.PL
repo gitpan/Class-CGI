@@ -13,6 +13,7 @@ my $builder = Module::Build->new(
         'CGI::Simple'               => 0.077,
         'Config::Std'               => '0.0.3',
         'File::Spec::Functions'     => 1.3,
+        'HTML::Entities'            => 1.32,
     },
     add_to_cleanup     => ['Class-CGI-*'],
     create_makefile_pl => 'traditional',

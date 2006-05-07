@@ -1,6 +1,7 @@
 Build.PL
 Changes
 lib/Class/CGI.pm
+lib/Class/CGI/Handler.pm
 Makefile.PL
 MANIFEST
 META.yml			# Will be created by "make dist"
@@ -11,6 +12,7 @@ t/20-instance.t
 t/30-multifields.t
 t/40-reused-handlers.t
 t/50-profile-file.t
+t/60-handler-base.t
 t/data/profiles.cfg
 t/lib/Class/CGI/Args.pm
 t/lib/Class/CGI/Customer.pm

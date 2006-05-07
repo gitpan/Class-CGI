@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 24;
+use Test::More tests => 29;
 
 #use Test::More qw/no_plan/;
 use Test::Exception;
@@ -108,3 +108,13 @@ ok !$cgi->param('customer'),
 %errors = $cgi->errors;
 like $errors{customer}, qr/^\QCould not find customer for (3)/,
   '... and we should have the correct error reported';
+
+can_ok $cgi, 'required';
+ok $cgi->required(qw/customer email/),
+  '... and setting required parameters should succeed';
+
+can_ok $cgi, 'is_required';
+ok $cgi->is_required('customer'),
+  '... and required parameters should report true';
+ok !$cgi->is_required('name'),
+  '... and optional parameters should report false';
